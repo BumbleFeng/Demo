@@ -34,11 +34,6 @@ public class HomeController {
         this.scoreService = scoreService;
     }
 
-    @GetMapping(value = "/", produces = "application/json")
-    public String index() {
-        return "abc";
-    }
-
     @GetMapping(value = "/student", produces = "application/json")
     public ResponseEntity getStudent(@PathVariable("name") String studentName) {
         if (!studentRepository.existsByStudentName(studentName))
@@ -118,35 +113,35 @@ public class HomeController {
         return new ResponseEntity<>(s, HttpStatus.OK);
     }
 
-    public ResponseEntity studentNotExist(String name) {
+    private ResponseEntity studentNotExist(String name) {
         ErrorMessage err = new ErrorMessage();
         err.setError("404");
         err.setMessage("Student Name: " + name + " Not Exist");
         return new ResponseEntity<>(err, HttpStatus.OK);
     }
 
-    public ResponseEntity studentExist(String name) {
+    private ResponseEntity studentExist(String name) {
         ErrorMessage err = new ErrorMessage();
         err.setError("409");
         err.setMessage("Student Name: " + name + "Already Existed");
         return new ResponseEntity<>(err, HttpStatus.OK);
     }
 
-    public ResponseEntity subjectNotExist(String name) {
+    private ResponseEntity subjectNotExist(String name) {
         ErrorMessage err = new ErrorMessage();
         err.setError("404");
         err.setMessage("Subject Name: " + name + "Not Exist");
         return new ResponseEntity<>(err, HttpStatus.OK);
     }
 
-    public ResponseEntity subjectExist(String name) {
+    private ResponseEntity subjectExist(String name) {
         ErrorMessage err = new ErrorMessage();
         err.setError("409");
         err.setMessage("Subject Name: " + name + "Already Existed");
         return new ResponseEntity<>(err, HttpStatus.OK);
     }
 
-    public ResponseEntity scoreExist(String subjectName, String studentName) {
+    private ResponseEntity scoreExist(String subjectName, String studentName) {
         ErrorMessage err = new ErrorMessage();
         err.setError("409");
         err.setMessage("Score: " + subjectName + " - " + studentName + "Already Existed");
