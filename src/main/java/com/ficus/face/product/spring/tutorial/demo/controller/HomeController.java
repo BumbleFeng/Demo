@@ -13,6 +13,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import javax.validation.Valid;
 import java.util.Map;
 
 @RestController
@@ -34,117 +35,140 @@ public class HomeController {
         this.scoreService = scoreService;
     }
 
-    @GetMapping(value = "/student", produces = "application/json")
-    public ResponseEntity getStudent(@PathVariable("name") String studentName) {
-        if (!studentRepository.existsByStudentName(studentName))
-            return studentNotExist(studentName);
-        Map<String, Integer> scores = scoreService.studentScores(studentName);
+    @GetMapping(value = "/student/{id}", produces = "application/json")
+    public ResponseEntity getStudent(@PathVariable("id") String id) {
+        Student student = studentRepository.findById(id).orElse(null);
+        if (student == null)
+            return studentNotExist(id);
+        Map<String, Integer> scores = scoreService.studentScores(id);
+        if (scores == null)
+            return studentEmptyScore(student);
         return new ResponseEntity<>(scores, HttpStatus.OK);
     }
 
     @PostMapping(value = "/student", produces = "application/json")
-    public ResponseEntity addStudent(@PathVariable("name") String name) {
-        if (studentRepository.existsByStudentName(name))
-            return studentExist(name);
-        Student student = new Student(name);
+    public ResponseEntity addStudent(@RequestBody @Valid Student student) {
+        Student s = studentRepository.findById(student.getId()).orElse(null);
+        if (s != null)
+            return studentExist(s);
         studentRepository.save(student);
         return new ResponseEntity<>(student, HttpStatus.OK);
     }
 
-    @DeleteMapping(value = "/student", produces = "application/json")
-    public ResponseEntity deleteStudent(@PathVariable("name") String name) {
-        if (!studentRepository.existsByStudentName(name))
-            return studentNotExist(name);
-        scoreService.deleteStudent(name);
+    @DeleteMapping(value = "/student/{id}", produces = "application/json")
+    public ResponseEntity deleteStudent(@PathVariable("id") String id) {
+        if (!studentRepository.existsById(id))
+            return studentNotExist(id);
+        scoreService.deleteStudent(id);
         return new ResponseEntity(HttpStatus.OK);
     }
 
-    @GetMapping(value = "/student", produces = "application/json")
-    public ResponseEntity getSubject(@PathVariable("name") String name) {
-        if (!subjectRepository.existsBySubjectName(name))
-            return subjectNotExist(name);
-        Map<String, Integer> scores = scoreService.subjectScores(name);
+    @GetMapping(value = "/subject/{id}", produces = "application/json")
+    public ResponseEntity getSubject(@PathVariable("id") String id) {
+        Subject subject = subjectRepository.findById(id).orElse(null);
+        if (subject == null)
+            return subjectNotExist(id);
+        Map<String, Integer> scores = scoreService.subjectScores(id);
+        if (scores == null)
+            return subjectEmptyScore(subject);
         return new ResponseEntity<>(scores, HttpStatus.OK);
     }
 
     @PostMapping(value = "/subject", produces = "application/json")
-    public ResponseEntity addSubject(@PathVariable("name") String name) {
-        if (subjectRepository.existsBySubjectName(name))
-            return subjectExist(name);
-        Subject subject = new Subject(name);
+    public ResponseEntity addSubject(@RequestBody @Valid Subject subject) {
+        Subject s = subjectRepository.findById(subject.getId()).orElse(null);
+        if (s != null)
+            return subjectExist(s);
         subjectRepository.save(subject);
         return new ResponseEntity<>(subject, HttpStatus.OK);
     }
 
-    @DeleteMapping(value = "/subject", produces = "application/json")
-    public ResponseEntity deleteSubject(@PathVariable("name") String name) {
-        if (!subjectRepository.existsBySubjectName(name))
-            return subjectNotExist(name);
-        scoreService.deleteSubject(name);
+    @DeleteMapping(value = "/subject/{id}", produces = "application/json")
+    public ResponseEntity deleteSubject(@PathVariable("id") String id) {
+        if (!subjectRepository.existsById(id))
+            return subjectNotExist(id);
+        scoreService.deleteSubject(id);
         return new ResponseEntity(HttpStatus.OK);
     }
 
     @PostMapping(value = "/score", produces = "application/json")
-    public ResponseEntity addScore(@RequestBody Score score) {
-        if (!subjectRepository.existsBySubjectName(score.getSubjectName()))
-            return subjectNotExist(score.getSubjectName());
-        if (!studentRepository.existsByStudentName(score.getStudentName()))
-            return studentNotExist(score.getStudentName());
-        if (scoreRepository.existsBySubjectNameAndStudentName(score.getSubjectName(), score.getStudentName()))
-            return scoreExist(score.getSubjectName(), score.getSubjectName());
+    public ResponseEntity addScore(@RequestBody @Valid Score score) {
+        Subject subject = subjectRepository.findById(score.getSubjectId()).orElse(null);
+        if (subject == null)
+            return subjectNotExist(score.getSubjectId());
+        Student student = studentRepository.findById(score.getStudentId()).orElse(null);
+        if (student == null)
+            return subjectNotExist(score.getStudentId());
+        if (scoreRepository.existsBySubjectIdAndStudentId(score.getSubjectId(), score.getStudentId()))
+            return scoreExist(subject, student);
         Score s = scoreService.addScore(score);
         return new ResponseEntity<>(s, HttpStatus.OK);
     }
 
-    @PostMapping(value = "/batchAdd", produces = "application/json")
-    public ResponseEntity batchAdd(@PathVariable("name") String subjectName, @RequestBody Map<String, Integer> scores) {
-        if (!subjectRepository.existsBySubjectName(subjectName))
-            return subjectNotExist(subjectName);
-        for (String studentName : scores.keySet()) {
-            if (!studentRepository.existsByStudentName(studentName))
-                return studentNotExist(studentName);
+    @PostMapping(value = "/batchAdd/{id}", produces = "application/json")
+    public ResponseEntity batchAdd(@PathVariable("id") String subjectId, @RequestBody Map<String, Integer> scores) {
+        if (!subjectRepository.existsById(subjectId))
+            return subjectNotExist(subjectId);
+        for (String studentId : scores.keySet()) {
+            if (!studentRepository.existsById(studentId))
+                return studentNotExist(studentId);
         }
-        Subject subject = subjectRepository.findBySubjectName(subjectName);
+        Subject subject = subjectRepository.findById(subjectId).orElse(null);
         for (Score s : subject.getScores()) {
-            if (scores.containsKey(s.getStudentName()))
-                return scoreExist(subjectName, s.getStudentName());
+            System.out.println(s.getStudentId());
+            if (scores.containsKey(s.getStudentId()))
+                return scoreExist(subject, studentRepository.findById(s.getStudentId()).orElse(null));
         }
-        Map<String, Integer> s = scoreService.batchAddScore(subjectName, scores);
+        Map<String, Integer> s = scoreService.batchAddScore(subjectId, scores);
         return new ResponseEntity<>(s, HttpStatus.OK);
     }
 
-    private ResponseEntity studentNotExist(String name) {
+    private ResponseEntity studentNotExist(String id) {
         ErrorMessage err = new ErrorMessage();
         err.setError("404");
-        err.setMessage("Student Name: " + name + " Not Exist");
+        err.setMessage("Student Id: " + id + " Not Exist");
         return new ResponseEntity<>(err, HttpStatus.OK);
     }
 
-    private ResponseEntity studentExist(String name) {
+    private ResponseEntity studentExist(Student student) {
         ErrorMessage err = new ErrorMessage();
         err.setError("409");
-        err.setMessage("Student Name: " + name + "Already Existed");
+        err.setMessage("Student Id: " + student.getId() + " Already Existed For: " + student.getStudentName());
         return new ResponseEntity<>(err, HttpStatus.OK);
     }
 
-    private ResponseEntity subjectNotExist(String name) {
+    private ResponseEntity subjectNotExist(String id) {
         ErrorMessage err = new ErrorMessage();
         err.setError("404");
-        err.setMessage("Subject Name: " + name + "Not Exist");
+        err.setMessage("Subject Id: " + id + " Not Exist");
         return new ResponseEntity<>(err, HttpStatus.OK);
     }
 
-    private ResponseEntity subjectExist(String name) {
+    private ResponseEntity subjectExist(Subject subject) {
         ErrorMessage err = new ErrorMessage();
         err.setError("409");
-        err.setMessage("Subject Name: " + name + "Already Existed");
+        err.setMessage("Subject Id: " + subject.getId() + " Already Existed For: " + subject.getSubjectName());
         return new ResponseEntity<>(err, HttpStatus.OK);
     }
 
-    private ResponseEntity scoreExist(String subjectName, String studentName) {
+    private ResponseEntity scoreExist(Subject subject, Student student) {
         ErrorMessage err = new ErrorMessage();
         err.setError("409");
-        err.setMessage("Score: " + subjectName + " - " + studentName + "Already Existed");
+        err.setMessage("Score: " + subject.getSubjectName() + " For " + student.getStudentName() + " Already Existed");
+        return new ResponseEntity<>(err, HttpStatus.OK);
+    }
+
+    private ResponseEntity studentEmptyScore(Student student) {
+        ErrorMessage err = new ErrorMessage();
+        err.setError("404");
+        err.setMessage("Student: " + student.getStudentName() + " Doesn't Have Any Scores");
+        return new ResponseEntity<>(err, HttpStatus.OK);
+    }
+
+    private ResponseEntity subjectEmptyScore(Subject subject) {
+        ErrorMessage err = new ErrorMessage();
+        err.setError("404");
+        err.setMessage("Subject: " + subject.getSubjectName() + " Doesn't Have Any Scores");
         return new ResponseEntity<>(err, HttpStatus.OK);
     }
 

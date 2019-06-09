@@ -7,13 +7,9 @@ import java.util.List;
 
 public interface ScoreRepository extends MongoRepository<Score, String> {
 
-    public boolean existsBySubjectNameAndStudentName(String subjectName, String studentName);
+    public boolean existsBySubjectIdAndStudentId(String subjectId, String studentId);
 
-    public List<Score> findByStudentName(String studentName);
+    public List<Score> findByStudentId(String studentId);
 
-    public List<Score> findBySubjectName(String subjectName);
-
-    public void deleteByStudentName(String studentName);
-
-    public void deleteBySubjectName(String subjectName);
+    public List<Score> findBySubjectId(String subjectId);
 }
